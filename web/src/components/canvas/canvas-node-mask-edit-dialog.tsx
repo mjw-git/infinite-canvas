@@ -22,7 +22,23 @@ const defaultBrushSize = 100;
 const maskOverlayColor = "#2563eb";
 const maskOverlayAlpha = 0.4;
 
-export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: { dataUrl: string; open: boolean; onClose: () => void; onConfirm: (payload: CanvasImageMaskEditPayload) => void }) {
+export function CanvasNodeMaskEditDialog({
+    dataUrl,
+    open,
+    onClose,
+    onConfirm,
+    initialPrompt,
+    title,
+    sceneHint,
+}: {
+    dataUrl: string;
+    open: boolean;
+    onClose: () => void;
+    onConfirm: (payload: CanvasImageMaskEditPayload) => void;
+    initialPrompt?: string;
+    title?: string;
+    sceneHint?: string;
+}) {
     const { t } = useTranslation();
     const maskCanvasRef = useRef<HTMLCanvasElement>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,7 +59,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
 
     useEffect(() => {
         if (!open) return;
-        setPrompt("");
+        setPrompt(initialPrompt?.trim() ? initialPrompt : "");
         setBrushSize(defaultBrushSize);
         setMode("paint");
         setError("");
@@ -55,7 +71,7 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
         brushAdjustRef.current = null;
         drawingRef.current = { active: false, stroke: null };
         void readImageMeta(dataUrl).then(setImage);
-    }, [dataUrl, open]);
+    }, [dataUrl, open, initialPrompt]);
 
     useEffect(() => {
         clearCanvas(maskCanvasRef.current);
@@ -264,8 +280,9 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
 
                 <div className="flex min-h-[360px] flex-col gap-5">
                     <div>
-                        <h2 className="text-xl font-semibold">{t("canvas.editors.maskTitle")}</h2>
+                        <h2 className="text-xl font-semibold">{title || t("canvas.editors.maskTitle")}</h2>
                         <div className="mt-2 text-sm opacity-60">{image ? `${image.width} x ${image.height}px` : t("canvas.editors.loading")}</div>
+                        {sceneHint ? <div className="mt-2 text-xs leading-5 opacity-70">{sceneHint}</div> : null}
                         <div className="mt-2 text-xs leading-5 opacity-55">{t("canvas.editors.maskHint")}</div>
                     </div>
 
@@ -307,7 +324,19 @@ export function CanvasNodeMaskEditDialog({ dataUrl, open, onClose, onConfirm }: 
                     </div>
 
                     <div className="space-y-2">
-                        <div className="text-sm font-medium opacity-75">{t("canvas.editors.editInstructions")}</div>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-medium opacity-75">{t("canvas.editors.editInstructions")}</div>
+                            <button
+                                type="button"
+                                className="shrink-0 rounded-md px-1.5 py-0.5 text-xs opacity-70 hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+                                onClick={() => {
+                                    setPrompt(t("canvas.editors.removeOverlayPrompt"));
+                                    setError("");
+                                }}
+                            >
+                                {t("canvas.editors.removeOverlayTemplate")}
+                            </button>
+                        </div>
                         <Input.TextArea
                             rows={6}
                             value={prompt}
