@@ -243,6 +243,7 @@ function InfiniteCanvasPage() {
     const [pluginManagerOpen, setPluginManagerOpen] = useState(false);
     const [cropNodeId, setCropNodeId] = useState<string | null>(null);
     const [maskEditNodeId, setMaskEditNodeId] = useState<string | null>(null);
+    const [maskEditInitialPrompt, setMaskEditInitialPrompt] = useState<string | undefined>(undefined);
     const [splitNodeId, setSplitNodeId] = useState<string | null>(null);
     const [upscaleNodeId, setUpscaleNodeId] = useState<string | null>(null);
     const [superResolveNodeId, setSuperResolveNodeId] = useState<string | null>(null);
@@ -949,6 +950,7 @@ function InfiniteCanvasPage() {
         setInfoNodeId(null);
         setCropNodeId(null);
         setMaskEditNodeId(null);
+        setMaskEditInitialPrompt(undefined);
         setAngleNodeId(null);
         setPreviewNodeId(null);
         setRunningNodeId(null);
@@ -1953,6 +1955,7 @@ function InfiniteCanvasPage() {
             const userPrompt = payload.prompt.trim();
             const prompt = t("canvas.projectPage.maskPrompt", { source: imageReferenceLabel(0), mask: imageReferenceLabel(1), prompt: userPrompt });
             setMaskEditNodeId(null);
+            setMaskEditInitialPrompt(undefined);
             const maskImage = await uploadImage(payload.maskDataUrl);
             const maskNodeId = nanoid();
             const childId = nanoid();
@@ -3242,7 +3245,14 @@ function InfiniteCanvasPage() {
                     onUpload={(node) => handleUploadRequest(node.id)}
                     onDownload={downloadNodeImage}
                     onSaveAsset={(node) => void saveNodeAsset(node)}
-                    onMaskEdit={(node) => setMaskEditNodeId(node.id)}
+                    onMaskEdit={(node) => {
+                        setMaskEditInitialPrompt(undefined);
+                        setMaskEditNodeId(node.id);
+                    }}
+                    onRemoveOverlay={(node) => {
+                        setMaskEditInitialPrompt(t("canvas.editors.removeOverlayPrompt"));
+                        setMaskEditNodeId(node.id);
+                    }}
                     onCrop={(node) => setCropNodeId(node.id)}
                     onSplit={(node) => setSplitNodeId(node.id)}
                     onUpscale={(node) => setUpscaleNodeId(node.id)}
@@ -3333,7 +3343,18 @@ function InfiniteCanvasPage() {
                 {cropNode?.metadata?.content ? <CanvasNodeCropDialog dataUrl={cropNode.metadata.content} open={Boolean(cropNode)} onClose={() => setCropNodeId(null)} onConfirm={(crop) => void cropImageNode(cropNode!, crop)} /> : null}
 
                 {maskEditNode?.metadata?.content ? (
-                    <CanvasNodeMaskEditDialog dataUrl={maskEditNode.metadata.content} open={Boolean(maskEditNode)} onClose={() => setMaskEditNodeId(null)} onConfirm={(payload) => void maskEditImageNode(maskEditNode!, payload)} />
+                    <CanvasNodeMaskEditDialog
+                        dataUrl={maskEditNode.metadata.content}
+                        open={Boolean(maskEditNode)}
+                        initialPrompt={maskEditInitialPrompt}
+                        title={maskEditInitialPrompt ? t("canvas.imageTools.removeOverlay") : undefined}
+                        sceneHint={maskEditInitialPrompt ? t("canvas.editors.removeOverlayHint") : undefined}
+                        onClose={() => {
+                            setMaskEditNodeId(null);
+                            setMaskEditInitialPrompt(undefined);
+                        }}
+                        onConfirm={(payload) => void maskEditImageNode(maskEditNode!, payload)}
+                    />
                 ) : null}
 
                 {splitNode?.metadata?.content ? <CanvasNodeSplitDialog dataUrl={splitNode.metadata.content} open={Boolean(splitNode)} onClose={() => setSplitNodeId(null)} onConfirm={(params) => void splitImageNode(splitNode!, params)} /> : null}
